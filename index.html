@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPN Hub - All in One</title>
+<style>
+body, html { margin:0; padding:0; font-family:Arial; color:white; overflow-x:hidden; }
+#wallpaper{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;opacity:0.4;}
+.container{padding:15px;}
+input,button{padding:10px;margin:5px 0;border-radius:5px;border:none;}
+button{background:#7289da;color:white;cursor:pointer;}
+.file-item{margin:5px 0;background:#333;padding:8px;border-radius:5px;}
+.chat{border:1px solid #555;padding:5px;height:200px;overflow-y:scroll;display:flex;flex-direction:column;gap:5px;margin-top:5px;}
+.message{padding:5px;border-radius:5px;max-width:80%;}
+.user{background:#7289da;align-self:flex-end;}
+.other{background:#43b581;align-self:flex-start;}
+.group-btn{background:#43b581;color:white;margin:2px;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="wallpaper">
+  <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4">
+</video>
+
+<div class="container">
+<h1>VPN Hub</h1>
+
+<!-- Auth -->
+<div id="authSection">
+<h2>Login / Register</h2>
+<input type="text" id="username" placeholder="Username">
+<input type="password" id="password" placeholder="Password">
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
+<p id="authMsg"></p>
+</div>
+
+<!-- Main -->
+<div id="mainSection" style="display:none;">
+<h2>Upload VPN File</h2>
+<input type="file" id="vpnfile">
+<button onclick="uploadFile()">Upload</button>
+<p id="uploadStatus"></p>
+
+<h2>VPN Files</h2>
+<div id="fileList"></div>
+
+<h2>Chat Groups</h2>
+<div id="groupButtons"></div>
+<div class="chat" id="chatBox"></div>
+<input type="text" id="chatInput" placeholder="Type message...">
+<button onclick="sendMessage()">Send</button>
+</div>
+</div>
+
+<script>
+// -------------------
+// Local Storage Users & Files
+// -------------------
+let currentUser = '';
+let files = JSON.parse(localStorage.getItem('vpnFiles')||'[]');
+let messages = JSON.parse(localStorage.getItem('chatMessages')||'{}');
+const groups = ["General","VPN Help","Updates"];
+let currentGroup = "";
+
+// -------------------
+// Auth
+// -------------------
+function register(){
+  let u=document.getElementById("username").value;
+  let p=document.getElementById("password").value;
+  let users=JSON.parse(localStorage.getItem('users')||'[]');
+  if(users.find(x=>x.username===u)){document.getElementById("authMsg").innerText="Username exists"; return;}
+  users.push({username:u,password:p});
+  localStorage.setItem('users',JSON.stringify(users));
+  document.getElementById("authMsg").innerText="Registered! Login now.";
+}
+function login(){
+  let u=document.getElementById("username").value;
+  let p=document.getElementById("password").value;
+  let users=JSON.parse(localStorage.getItem('users')||'[]');
+  let user=users.find(x=>x.username===u && x.password===p);
+  if(!user){document.getElementById("authMsg").innerText="Invalid credentials"; return;}
+  currentUser=u;
+  document.getElementById("authSection").style.display="none";
+  document.getElementById("mainSection").style.display="block";
+  loadFiles();
+  loadGroups();
+}
+
+// -------------------
+// Upload VPN
+// -------------------
+function uploadFile(){
+  let f=document.getElementById("vpnfile").files[0];
+  if(!f){alert("Select file");return;}
+  files.push({name:f.name,url:URL.createObjectURL(f)});
+  localStorage.setItem('vpnFiles',JSON.stringify(files));
+  document.getElementById("uploadStatus").innerText="Uploaded!";
+  loadFiles();
+}
+function loadFiles(){
+  let list = document.getElementById("fileList");
+  list.innerHTML = "";
+  files.forEach(f=>{
+    let div=document.createElement("div");
+    div.className="file-item";
+    div.innerHTML=`<a href="${f.url}" download>${f.name}</a>`;
+    list.appendChild(div);
+  });
+}
+
+// -------------------
+// Chat
+// -------------------
+const chatBox=document.getElementById("chatBox");
+function loadGroups(){
+  let btnDiv=document.getElementById("groupButtons");
+  btnDiv.innerHTML="";
+  groups.forEach(g=>{
+    let btn=document.createElement("button");
+    btn.className="group-btn";
+    btn.innerText=g;
+    btn.onclick=()=>joinGroup(g);
+    btnDiv.appendChild(btn);
+    if(!messages[g]) messages[g]=[];
+  });
+  localStorage.setItem('chatMessages',JSON.stringify(messages));
+}
+function joinGroup(g){
+  currentGroup=g;
+  chatBox.innerHTML="";
+  messages[g].forEach(m=>addMessage(m));
+}
+function sendMessage(){
+  let input=document.getElementById("chatInput");
+  if(!input.value||!currentGroup) return;
+  let m={user:currentUser,msg:input.value};
+  messages[currentGroup].push(m);
+  localStorage.setItem('chatMessages',JSON.stringify(messages));
+  addMessage(m);
+  input.value="";
+}
+function addMessage(m){
+  let div=document.createElement("div");
+  div.className="message "+(m.user===currentUser?"user":"other");
+  div.innerText=`${m.user}: ${m.msg}`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+}
+</script>
+</body>
+</html>
